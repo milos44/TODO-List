@@ -1,0 +1,201 @@
+<html>
+<head>
+  <title id="titleName">Items</title>
+  <script type="text/javascript" src="/assets/jquery/jquery.min.js"></script>
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap-theme.min.css">
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/js/bootstrap.min.js"></script>
+
+  <link rel="stylesheet" href="/assets/datatables/css/jquery.dataTables.min.css">
+  <script type="text/javascript" charset="utf8" src="/assets/datatables/js/jquery.dataTables.js"></script> 
+
+</head>
+<body>
+  <input id="itemId" type="hidden">
+  <div class="container">
+    <div class="row">
+      <div class="col-sm-12" style="background: grey;">
+        <h1 style="color:white; padding-left: 5pt;">
+          <span id="currentListName">List Name</span>
+          <span class="pull-right"><a style="color:white; padding-left: 5pt;" href="/">Back</a></span>
+        </h1>
+      </div>
+    </div>
+    <hr>
+    <div class="row">
+      <div class="col-sm-12">
+        <table id="table_id" class="display">
+          <thead>
+            <th>Name</th>
+            <th>Actions</th>
+          </thead>
+        </table>
+      </div>
+    </div>
+    <div clas="row">
+      <div class="col-sm-12">
+        <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#addUpdateItem">
+          Add Item
+        </button>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-sm-12">
+        <hr>
+      </div>
+    </div>
+  </div>
+  
+  <footer id="sticky-footer" class="py-4 bg-dark text-white-50">
+    <div class="container text-center">
+      <small>Copyright &copy; Milos Milojevic</small>
+    </div>
+  </footer>
+  <div id="addUpdateItem" class="modal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Add/Update Item</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <form>
+            <div class="form-group">
+              <label for="item-name" class="col-form-label">Name:</label>
+              <input type="text" class="form-control" id="item-name">
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button id="btAddItem" type="button" class="btn btn-primary">Save changes</button>
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div id="deleteItem" class="modal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Delete Item</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <p>Are you sure you want to delete this item?</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+          <button id="btDelete" onclick="confirmDelete()" type="button" class="btn btn-primary">Delete</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script>
+    $(document).ready( function () {
+      var path = window.location.pathname.split("/");
+      var listId = path[2];
+      $.ajax({
+      url: "http://localhost:3000/items/"+listId,
+      type: "post", 
+      dataType: "json",
+      success: function(res) {
+        console.log(res);
+        $('#currentListName').text(res[0].listname);
+        $('#titleName').text(res[0].listname);
+        $('#table_id').DataTable({
+        data : res[0].id > 0 ? res : null,
+        columns: [
+           { data: 'name' },
+           { 
+              'data': 'id',
+              'searchable': false,
+              'sortable': false,
+              'render': function(data, type, row ){
+                  return '<a onclick="Delete('+row.id+')" href="javascript:void(0);">Delete </a> |<a onclick="Update('+row.id+',\''+row.name+'\')'+'" href="javascript:void(0);"> Update </a>';
+              }
+
+            }
+            
+        ]
+        });
+      },
+      error: function(xhr) {
+        console.log(xhr);
+      }
+    });
+    
+   
+    $( "#btAddItem" ).click(function() {
+      if ($('#item-name').val() ===''){
+          alert("Name must have a value!");
+      }
+      else{
+        if ( $("#itemId").val() > 0){
+            $.ajax({
+              url: "http://localhost:3000/item/update/"+$("#itemId").val(),
+              type: "put", 
+              dataType: "json",
+              data: {'id':$("#itemId").val(), 'name' : $('#item-name').val()},
+              success: function(res) {
+                console.log(res); 
+                location.reload();
+              },
+              error: function(xhr) {
+                console.log(xhr);
+              }
+            });
+        }
+        else{
+            $.ajax({
+              url: "http://localhost:3000/item/add",
+              type: "post", 
+              dataType: "json",
+              data: {'name' : $('#item-name').val(), 'listId' : listId},
+              success: function(res) {
+                console.log(res); 
+                location.reload();
+              },
+              error: function(xhr) {
+                console.log(xhr);
+              }
+          });
+      }
+    }
+    });
+ 
+  });
+
+  function confirmDelete(){
+      var itemId = $("#itemId").val();
+      $.ajax({
+        url: "http://localhost:3000/item/delete/"+itemId,
+        type: "delete", 
+        dataType: "json",
+        success: function(res) {
+          console.log(res); 
+          location.reload();
+        },
+        error: function(xhr) {
+          console.log(xhr);
+        }
+      });
+  };
+
+  function Delete(id){
+    $("#itemId").val(id);
+    $("#deleteItem").modal();
+  }
+
+  function Update(id, name, state){
+    $("#itemId").val(id);
+    $("#addUpdateItem").modal();
+    $("#item-name").val(name);
+  }
+
+  </script>
+</body>
+</html>
